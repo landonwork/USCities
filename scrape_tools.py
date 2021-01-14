@@ -88,7 +88,8 @@ def repent(mini,maxi,guess,url):
     begrudged = True
     pings = []
     while True:
-        print(f"Repenting for {guess} hours")
+        a = datetime.now() + timedelta(hours=guess)
+        print(f"Repenting until {a.hour:a.minute}")
         sleep(60*60*guess)
         begrudged = not ping(url)
         pings.append(datetime.now())

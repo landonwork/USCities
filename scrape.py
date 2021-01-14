@@ -68,7 +68,10 @@ for state in all_cities.keys():
         if len(request_log) >= 950:
             time_since = datetime.now()-request_log[-950]
             if time_since < timedelta(hours=min_forget):
-                sleep((timedelta(hours=max_forget)-time_since).total_seconds()+60.)
+                wait_time = (timedelta(hours=max_forget)-time_since).total_seconds()+60.
+                a = datetime.now()
+                print(f"Will resume scraping at {(a+wait_time).hour}:{(a+wait_time).minute}")
+                sleep()
         if (city == 'Santa Margarita') & (state == 'California'):
             continue
         print(n, f"{city}, {state.replace('-',' ')}")
@@ -78,8 +81,8 @@ for state in all_cities.keys():
         if addition is bool: # If the server ignored me
             min_forget = max(min_forget,(datetime.now()-request_log[-998]).total_seconds()/3600.)
             max_forget = min_forget+1
-            print(f"Setting minimum forget time to {min_forget} hours")
-            min_forgive, max_forgive, pings = repent(min_forgive,max_forgive,forgive_guess,url)
+            print(f"Setting minimum forget time to {min_forget:.01f} hours")
+            min_forgive, max_forgive, pings = st.repent(min_forgive,max_forgive,forgive_guess,url)
             forgive_guess = (min_forgive+max_forgive)/2
             request_log.extend(pings)
         city_data.update(addition)
