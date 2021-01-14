@@ -6,7 +6,7 @@ Created on Wed Jul 22 20:28:38 2020
 """
 
 url = 'http://www.city-data.com/'
-start_state = 'California'
+start_state = 'Colorado'
 
 import scrape_tools as st
 from datetime import datetime
@@ -48,12 +48,12 @@ for link in links:
     all_cities.update({state_match.group('state'): get_cities(link)})
 #####################################################################
 
-
 print('Scraping and storing city data')
 #####################################################################
 li = open('var_settings.txt','r').readlines()[0].split(', ')
 min_forget = float(li[0])
-max_forget = float(li[1])
+forget_margin = float(li[1])
+max_forget = min_forget + forget_margin
 min_forgive = float(li[2])
 max_forgive = float(li[3])
 forgive_guess = float(li[4])
@@ -71,7 +71,7 @@ for state in all_cities.keys():
                 wait_time = (timedelta(hours=max_forget)-time_since).total_seconds()+60.
                 a = datetime.now()
                 print(f"Will resume scraping at {(a+wait_time).hour}:{(a+wait_time).minute}")
-                sleep()
+                sleep(wait_time)
         if (city == 'Santa Margarita') & (state == 'California'):
             continue
         print(n, f"{city}, {state.replace('-',' ')}")
@@ -80,7 +80,7 @@ for state in all_cities.keys():
         addition = scrape_city(city_url)
         if addition is bool: # If the server ignored me
             min_forget = max(min_forget,(datetime.now()-request_log[-998]).total_seconds()/3600.)
-            max_forget = min_forget+1
+            max_forget = min_forget+margin_forget
             print(f"Setting minimum forget time to {min_forget:.01f} hours")
             min_forgive, max_forgive, pings = st.repent(min_forgive,max_forgive,forgive_guess,url)
             forgive_guess = (min_forgive+max_forgive)/2

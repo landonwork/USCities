@@ -85,15 +85,15 @@ def scrape_city(url):
     return content
 
 def repent(mini,maxi,guess,url):
-    begrudged = True
+    forgiven = False
     pings = []
     while True:
         a = datetime.now() + timedelta(hours=guess)
         print(f"Repenting until {a.hour:a.minute}")
         sleep(60*60*guess)
-        begrudged = not ping(url)
+        forgiven = ping(url)
         pings.append(datetime.now())
-        if begrudged:
+        if not forgiven:
             mini = guess
             guess = (mini+maxi)/2
         else:
