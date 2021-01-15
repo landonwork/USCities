@@ -12,6 +12,7 @@ from urllib.request import urlopen
 from urllib.error import HTTPError, URLError
 from socket import timeout
 from datetime import datetime
+from datetime import timedelta
 import re
 
 import platform    # For getting the operating system name

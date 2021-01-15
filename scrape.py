@@ -20,7 +20,8 @@ make_soup = st.log_request(st.make_soup,request_log)
 ping = st.log_request(st.ping,request_log)
 get_cities = st.log_request(st.get_cities,request_log)
 scrape_city = st.log_request(st.scrape_city,request_log)
-
+# You cannot reassign request_log after this point
+# If you do, run these four lines again
 
 print("Gathering state links")
 #####################################################################
@@ -70,21 +71,24 @@ for state in all_cities.keys():
             if time_since < timedelta(hours=min_forget):
                 wait_time = (timedelta(hours=max_forget)-time_since).total_seconds()+60.
                 a = datetime.now()
-                print(f"Will resume scraping at {(a+wait_time).hour}:{(a+wait_time).minute}")
+                print(f"Will resume scraping at {(a+timedelta(seconds=wait_time)).hour}:{(a+timedelta(seconds=wait_time)).minute}")
                 sleep(wait_time)
         if (city == 'Santa Margarita') & (state == 'California'):
             continue
         print(n, f"{city}, {state.replace('-',' ')}")
         city_url = url + f"city/{city.replace(' ','-')}-{state}.html"
         city_data = {'state':state.replace('-',' '),'city':[city]}
-        addition = scrape_city(city_url)
-        if addition is bool: # If the server ignored me
-            min_forget = max(min_forget,(datetime.now()-request_log[-998]).total_seconds()/3600.)
-            max_forget = min_forget+margin_forget
-            print(f"Setting minimum forget time to {min_forget:.01f} hours")
-            min_forgive, max_forgive, pings = st.repent(min_forgive,max_forgive,forgive_guess,url)
-            forgive_guess = (min_forgive+max_forgive)/2
-            request_log.extend(pings)
+        while True:
+            addition = scrape_city(city_url)
+            if addition is bool: # If the server ignored me
+                min_forget = max(min_forget,(datetime.now()-request_log[-998]).total_seconds()/3600.)
+                max_forget = min_forget+forget_margin
+                print(f"Setting minimum forget time to {min_forget:.01f} hours")
+                min_forgive, max_forgive, pings = st.repent(min_forgive,max_forgive,forgive_guess,url)
+                forgive_guess = (min_forgive+max_forgive)/2
+                request_log.extend(pings)
+            else:
+                break
         city_data.update(addition)
         city_df = pd.DataFrame.from_dict(city_data)
         state_df = pd.concat([state_df,city_df])
@@ -96,36 +100,3 @@ for state in all_cities.keys():
 #####################################################################
 
 print('All done. Time to party!')
-
-# There are two things to keep track of:
-    # 1. How long it takes the server to forget past requests
-    # 2. How long it takes the server to forgive me
-# Forgetting:
-    # 1. I will start by assuming it takes around 6 hours for the
-    # server to forget who I am and that it blocks me after I have
-    # reached 1000 requests that go unforgotten
-    # 2. Therefore, if the server ever blocks me, I know it remembers at
-    # least 1000 requests and the difference between the current time
-    # and the last 1000th request is too short; in other words, the
-    # forget time is longer than that time difference
-    # 3. Using that time as a minimum forget time, I can keep track of
-    # how many requests the server still remembers and stop the program
-    # if it ever gets close to 1000 requests (say, 950)
-    # 4. In addition, when I am certain the server has forgotten a request
-    # there is no more reason to wait. This requires a max forget time.
-    # Note: I will not be removing any values as I would like to look
-    # at them myself later.
-    # 5. There is no reason to predict an exact forget time, just a
-    # safety margin. For simplicity, it will be one hour more than
-    # the minimum forget time.
-# Forgiving:
-    # 1. I have reason to believe it could take as long as 24 hours for
-    # the server to forgive me for exceeding the limit of requests in a
-    # certain amount of time and that time blocked from the server
-    # increases with additional requests while blocked
-    # 2. Therefore, I must be careful when attempting to resume scraping.
-    # I can being by assuming that it takes a minimum of, say, 8 hours
-    # to be forgiven and a maximum of 48 and then use a binary method
-    # to optimize the search method, starting with a guess of 24 hours
-    # 4. It might also be useful to record the times at which my requests
-    # are blocked
