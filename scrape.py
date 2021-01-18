@@ -6,7 +6,7 @@ Created on Wed Jul 22 20:28:38 2020
 """
 
 url = 'http://www.city-data.com/'
-start_state = 'Colorado'
+start_state = 'Iowa'
 
 import scrape_tools as st
 from datetime import datetime
@@ -36,7 +36,7 @@ for state in html_soup.findAll('a'):
     if switch:
         links.append(state['href'])
 
-links.remove('http://www.city-data.com/city/District-of-Columbia.html')
+# links.remove('http://www.city-data.com/city/District-of-Columbia.html')
 links.remove('http://www.city-data.com/smallTowns.html')
 #####################################################################
 
@@ -51,44 +51,73 @@ for link in links:
 
 print('Scraping and storing city data')
 #####################################################################
+# Loading in best guess variables
 li = open('var_settings.txt','r').readlines()[0].split(', ')
 min_forget = float(li[0])
-forget_margin = float(li[1])
-max_forget = min_forget + forget_margin
+forget_guess = float(li[1])
 min_forgive = float(li[2])
 max_forgive = float(li[3])
 forgive_guess = float(li[4])
-# f = open('var_settings.txt','w')
-# s = [min_forget,max_forget,min_forgive,max_forgive,forgive_guess]
-# f.write(str(s)[1:-1])
+
+# Still trying to decide where is best to keep this but I think it
+# works best where it is
+def update_var_settings(a,b,c,d,e):
+    f = open('var_settings.txt','w')
+    s = [a,b,c,d,e]
+    f.write(str(s)[1:-1])
+    f.close()
+    
+# Start scraping
 n = 1
 for state in all_cities.keys():
     state_df = pd.DataFrame()
     print(f"Scraping {state.replace('-',' ')} cities:")
     for city in all_cities[state]:
+        
+        # When you start to get close to ticking off the server,
+        # take a break:
+            # 1. Wait until we can assume it is starting to forget the
+            #    earlier requests
+            # 2. Lower our assumption by a little bit, but not past
+            #    what we already know is unsafe
+            # 3. Update var_settings.txt
         if len(request_log) >= 950:
             time_since = datetime.now()-request_log[-950]
-            if time_since < timedelta(hours=min_forget):
-                wait_time = (timedelta(hours=max_forget)-time_since).total_seconds()+60.
+            if time_since < timedelta(hours=forget_guess):
+                wait_time = (timedelta(hours=forget_guess)-time_since).total_seconds()+60.
                 a = datetime.now()
                 print(f"Will resume scraping at {(a+timedelta(seconds=wait_time)).hour}:{(a+timedelta(seconds=wait_time)).minute}")
                 sleep(wait_time)
+                forget_guess = max(forget_guess-0.1,min_forget)
+        
+        # This one city causes problems for some reason
         if (city == 'Santa Margarita') & (state == 'California'):
             continue
+        
         print(n, f"{city}, {state.replace('-',' ')}")
         city_url = url + f"city/{city.replace(' ','-')}-{state}.html"
         city_data = {'state':state.replace('-',' '),'city':[city]}
+        
+        # Do-While loop
+        # If we get blocked by the server:
+            # 1. Reflect the time we spent unblocked in min_forget
+            # 2. Raise forget_guess if needed
+            # 3. Use st.repent to wait for forgiveness
+            # 4. Update request_log and forgive_guess
+            # 5. Update var_settings.txt
         while True:
             addition = scrape_city(city_url)
-            if addition is bool: # If the server ignored me
-                min_forget = max(min_forget,(datetime.now()-request_log[-998]).total_seconds()/3600.)
-                max_forget = min_forget+forget_margin
+            if addition is False: # If the server ignores me
+                min_forget = max(min_forget,(datetime.now()-request_log[max(-len(request_log),-998)]).total_seconds()/3600.)
+                forget_guess = min_forget + .5
                 print(f"Setting minimum forget time to {min_forget:.01f} hours")
-                min_forgive, max_forgive, pings = st.repent(min_forgive,max_forgive,forgive_guess,url)
+                min_forgive, max_forgive, pings = st.repent(min_forgive,max_forgive,forgive_guess,'city-data.com')
                 forgive_guess = (min_forgive+max_forgive)/2
+                update_var_settings(min_forget,forget_guess,min_forgive,max_forgive,forgive_guess)
                 request_log.extend(pings)
             else:
                 break
+            
         city_data.update(addition)
         city_df = pd.DataFrame.from_dict(city_data)
         state_df = pd.concat([state_df,city_df])

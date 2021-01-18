@@ -90,7 +90,7 @@ def repent(mini,maxi,guess,url):
     pings = []
     while True:
         a = datetime.now() + timedelta(hours=guess)
-        print(f"Repenting until {a.hour:a.minute}")
+        print(f"Repenting until {a.hour}:{a.minute}")
         sleep(60*60*guess)
         forgiven = ping(url)
         pings.append(datetime.now())
