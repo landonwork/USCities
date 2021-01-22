@@ -214,17 +214,12 @@ def add_educ(df,level,or_hi=True):
     name = level.lower().replace(' ','-').replace('\'','')
     return pd.concat([df,pd.DataFrame(l,df.index,columns=[name])],axis=1)
     
-df = pd.read_excel('C:/Users/lando/Desktop/Python/City Data/all_cities.xlsx',sheet_name='Unabridged')
-
-# Dropping rows that are completely empty or only have useless information
-df = df.dropna(thresh = 8)
-df = df.dropna(thresh = 22) # Length didn't change. Looks like the useless information is scattered around
-
-# First thing I'm going to do is index the thing
+df = pd.read_excel('C:/Users/lando/Desktop/Python/City Data/all-cities.xlsx',sheet_name='Unabridged')
 df = df.set_index(['state','city'])
-
-# K. Got that out of the way. Now we sort by year and create separate DataFrames
-# But it's saying we need to drop na's from city-population first
+# Dropping rows that are completely empty or only have useless information
+df = df.dropna(thresh = 8) # thresh drops rows that have less than 8 non-n/a values
+# city-population has been a pretty good indicator of the
+# completeness of the data, so I'm going to sort by that
 df = df[df['city-population'].notna()]
 df_2017 = df[df['city-population'].str.contains('in 2017')]
 df_2010 = df[df['city-population'].str.contains('in 2010')]
@@ -238,7 +233,7 @@ df_other = df_other.drop(df_2010.index)
 df_other = df_other.drop(df_july07.index)
 
 # Building the numerical dataset
-nums = pd.DataFrame()
+nums = pd.DataFrame(index=df.index)
 nums = pd.concat([nums,get_pop(df)],axis=1)
 nums = pd.concat([nums,get_sex(df)],axis=1)
 nums = pd.concat([nums,get_poverty(df)],axis=1)

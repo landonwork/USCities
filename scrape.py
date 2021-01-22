@@ -6,7 +6,7 @@ Created on Wed Jul 22 20:28:38 2020
 """
 
 url = 'http://www.city-data.com/'
-start_state = 'Iowa'
+start_state = 'New York'
 
 import scrape_tools as st
 from datetime import datetime
@@ -16,28 +16,16 @@ import pandas as pd
 import re
 
 request_log = []
-make_soup = st.log_request(st.make_soup,request_log)
+get_states = st.log_request(st.get_states,request_log)
 ping = st.log_request(st.ping,request_log)
 get_cities = st.log_request(st.get_cities,request_log)
 scrape_city = st.log_request(st.scrape_city,request_log)
 # You cannot reassign request_log after this point
-# If you do, run these four lines again
+# If you do, you have to run these four lines again
 
 print("Gathering state links")
 #####################################################################
-html_soup = make_soup(url)
-html_soup = html_soup.findAll('div',{'id': 'home1'})[0]
-
-links = []
-switch = False
-for state in html_soup.findAll('a'):
-    if state.text == start_state:
-        switch = True
-    if switch:
-        links.append(state['href'])
-
-# links.remove('http://www.city-data.com/city/District-of-Columbia.html')
-links.remove('http://www.city-data.com/smallTowns.html')
+links = st.get_states('Alabama')
 #####################################################################
 
 print('Collecting city names by state')
@@ -62,7 +50,7 @@ forgive_guess = float(li[4])
 # Still trying to decide where is best to keep this but I think it
 # works best where it is
 def update_var_settings(a,b,c,d,e):
-    f = open('var_settings.txt','w')
+    f = open('C:/Users/lando/Desktop/Python/City Data/var_settings.txt','w')
     s = [a,b,c,d,e]
     f.write(str(s)[1:-1])
     f.close()

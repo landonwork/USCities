@@ -54,6 +54,25 @@ def make_soup(url):
     html_soup = soup(html,'html.parser')
     return html_soup
 
+def get_states(url,start_state):
+    html_soup = make_soup(url)
+    html_soup = html_soup.findAll('div',{'id': 'home1'})[0]
+    links = []
+    switch = False
+    for state in html_soup.findAll('a'):
+        if state.text == start_state:
+            switch = True
+        if switch:
+            links.append(state['href'])
+    
+    dc = 'http://www.city-data.com/city/District-of-Columbia.html'
+    st = 'http://www.city-data.com/smallTowns.html'
+    if dc in links:
+        links.remove(dc)
+    if st in links:
+        links.remove(st)
+    return links
+
 def get_cities(url):
     state_soup = make_soup(url)
     state_soup = state_soup.find('table',{'id':'cityTAB'})
