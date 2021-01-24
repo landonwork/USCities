@@ -7,12 +7,14 @@ Created on Thu Aug 20 15:11:11 2020
 import numpy as np
 import pandas as pd
 import re
+from functools import reduce
 
 def count_na(df):
     for name in df.columns:
         print(name +': '+str(df[name].isnull().sum()))
 
 # Good to go
+# Total Population
 def get_pop(df):
     peeps = re.compile('\d{4}:\s(?P<population>\d+(\,\d{3})*)')
     li = []
@@ -26,12 +28,14 @@ def get_pop(df):
     return pd.DataFrame({'total-population':li},index = df.index)
 
 # Good to go
+# Year (of population columns)
 def get_year(df):
     li = [int(re.search('\d{4}',text).group()) for text in df['city-population']]
     return pd.DataFrame({'year':li},index=df.index)
     
 # Good to go
-# Male and female add to exactly the total population
+# Male Population, Female Population
+# Male and female add to exactly Total Population
 # Percents all add to 1
 def get_sex(df):
     males = re.compile('Males:\s(?P<male>\d*(\,\d{3})*)\s*\((?P<perc_male>.+?)%\)')
@@ -51,7 +55,9 @@ def get_sex(df):
             female_pop.append(np.nan)
             perc_female.append(np.nan)
     return pd.DataFrame({'male-population':male_pop,'female-population':female_pop,'percent-male':perc_male,'percent-female':perc_female}, index = df.index)
-    
+
+# Good to go
+# Poverty Level
 # I don't have the guts to try and grab all of the racial poverty levels right now. That's a lot.
 # All values between 0 and 1
 def get_poverty(df):
@@ -66,6 +72,7 @@ def get_poverty(df):
     return pd.DataFrame({'poverty-level':li},index=df.index)
 
 # Good to go
+# Median Age
 def get_age(df):
     li=[]
     get_age = re.compile('resident age:(?P<age>\d*\.?\d?) years')
@@ -75,10 +82,10 @@ def get_age(df):
     return pd.DataFrame({'median-age':li},index=df.index)
 
 # Good to go
-# Median household Income, Per Capita Income, and Median House/Condo Value
-# Interestingly, all of the data in this column is from 2017
-# which does not match up with all the years of
-# the population counts
+# Median household Income, Per Capita Income, Median Home Value
+# Interestingly, all of the data in these columns are from 2017
+# This may cause problems if I try to use this with populations from
+# different years
 def get_income(df):
     hh_income, per_capita_income, home_value = [],[],[]
     list_tuple = (hh_income, per_capita_income, home_value)
@@ -94,10 +101,17 @@ def get_income(df):
                 list_tuple[i].append(float(match_tuple[i].group('value').replace(',','')))        
     return pd.DataFrame({'median-household-income':hh_income,'per-capita-income':per_capita_income,'median-home-value':home_value},index=df.index)
 
-# Really want this variable as well
-# Plus, I want a variable for number of universities in a city
+# Good to go
+# Median Rent
+# This column also only has data from 2017
 def get_rent(df):
-    pass
+    li = []
+    for text in df['median-rent']:
+        if text is np.nan:
+            li.append(np.nan)
+        else:
+            li.append(float(re.search('\d{4}: \$(?P<rent>\d+(\,\d{3})*(\.d{2})?)',text).group('rent').replace(',','')))
+    return pd.DataFrame({'median-rent':li},index=df.index)
 
 # Good to go
 # Land Area and Population Density
@@ -123,6 +137,7 @@ def density(df):
     return pd.DataFrame({'land-area':areas,'pop-density':dens},df.index)
 
 # Good to go
+# Foreign-Born Residents (Immigrants)
 def foreign(df):
     li=[]
     get_born = re.compile('\d*(\,\d*)*')
@@ -135,7 +150,64 @@ def foreign(df):
         li.append(ans)
     return pd.DataFrame({'foreign-born':li},index=df.index)
 
-# I will work on this later
+# Good to go
+# Gini Education Inequality Index
+def get_gini(df):
+    li=[]
+    get_gini = re.compile('Here:(?P<gini>\d*?\.\d)')
+    for cell in df['education-graphs']:
+        try:
+            ans = get_gini.search(cell).group('gini')
+            ans = float(ans.replace(',',''))
+        except (AttributeError, TypeError):
+            ans = np.nan
+        li.append(ans)
+    return pd.DataFrame({'gini-index':li}, index = df.index)
+
+# Good to go
+# Student Population
+# Full-time students from the 20 largest colleges/universities in the city
+# 0 for most cities
+# Some schools did not include enrollment, so it's not perfect
+# I figure it can hugely affect income, age, housing prices, and education
+def get_students(df):
+    li = []
+    for city in df['schools']:
+        num = 0
+        begin = False
+        schools = city.split('\n')
+        for s in schools:
+            if s == '' and begin:
+                break
+            if bool(re.match('(Biggest )?College(s?)/Universit(y|ies)',s)):
+                begin = True
+            if begin:
+                try:
+                    num += int(re.search('enrollment:\s*(?P<num>\d*(\,\d*)*)',s).group('num').replace(',',''))
+                except AttributeError:
+                    pass
+        li.append(num)
+    return pd.DataFrame({'student-population':li},index=df.index)
+            
+
+
+# Percent High School, Bachelor's, Doctorate
+def get_educ(df,level,or_hi=True):
+    hi = ' or higher:' if or_hi == True else ':'
+    get_educ = re.compile(level+hi+'\s(?P<educ>\d*?\.\d)%')
+    l = []
+    for cell in df['education-info']:
+        try:
+            ans = float(get_educ.search(cell).group('educ'))
+        except AttributeError:
+            ans = np.nan
+        l.append(ans)
+    name = level.lower().replace(' ','-').replace('\'','')
+    return pd.concat([df,pd.DataFrame(l,df.index,columns=[name])],axis=1)
+
+
+# I will work on this later. Lots of variation in which races are included.
+# Does that mean I can count na's as 0?
 def add_race(df,race,name):
     l=[]
     get_nums = re.compile('(?P<nums>\d*(\,\d*)*\.\d*)\%'+race)
@@ -171,38 +243,6 @@ def add_race(df,race,name):
     print(race,'population added to the dataset')
     return pd.concat([df,pd.DataFrame(l,index=df.index,columns = [name])],axis=1)
 
-df2017 = add_race(df2017,'White','white-population')
-df2017 = add_race(df2017,'Black','black-population')
-df2017 = add_race(df2017,'Hispanic','hispanic-population')
-df2017 = add_race(df2017,'Asian','asian-population')
-
-# Gini Education inequality index
-def add_gini(df):
-    l=[]
-    get_gini = re.compile('Here:(?P<gini>\d*?\.\d)')
-    for cell in df['education-graphs']:
-        try:
-            ans = get_gini.search(cell).group('gini')
-            ans = float(ans.replace(',',''))
-        except:
-            ans = np.nan
-        l.append(ans)
-    return l
-
-df2017 = add_column(add_gini,df2017,'gini-index')
-
-def add_educ(df,level,or_hi=True):
-    hi = ' or higher:' if or_hi == True else ':'
-    get_educ = re.compile(level+hi+'\s(?P<educ>\d*?\.\d)%')
-    l = []
-    for cell in df['education-info']:
-        try:
-            ans = float(get_educ.search(cell).group('educ'))
-        except AttributeError:
-            ans = np.nan
-        l.append(ans)
-    name = level.lower().replace(' ','-').replace('\'','')
-    return pd.concat([df,pd.DataFrame(l,df.index,columns=[name])],axis=1)
     
 df = pd.read_excel('C:/Users/lando/Desktop/Python/City Data/all-cities.xlsx',sheet_name='Unabridged')
 df = df.set_index(['state','city'])
@@ -224,12 +264,8 @@ df_other = df_other.drop(df_july07.index)
 
 # Building the numerical dataset
 nums = pd.DataFrame(index=df.index)
-nums = pd.concat([nums,get_year(df)],axis=1)
-nums = pd.concat([nums,get_pop(df)],axis=1)
-nums = pd.concat([nums,get_sex(df)],axis=1)
-nums = pd.concat([nums,get_poverty(df)],axis=1)
-nums = pd.concat([nums,get_age(df)],axis=1)
-nums = pd.concat([nums,get_income(df)],axis=1)
-nums = pd.concat([nums,density(df)],axis=1)
-nums = pd.concat([nums,foreign(df)],axis=1)
+fns = [get_year, get_pop, get_sex, get_poverty, get_age, get_income,
+       get_rent, density, foreign, get_gini, get_students]
+for fn in fns:
+    nums = pd.concat([nums,fn(df)],axis=1)
 nums.to_csv('all-nums.csv')
