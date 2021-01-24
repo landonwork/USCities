@@ -26,6 +26,11 @@ def get_pop(df):
     return pd.DataFrame({'total-population':li},index = df.index)
 
 # Good to go
+def get_year(df):
+    li = [int(re.search('\d{4}',text).group()) for text in df['city-population']]
+    return pd.DataFrame({'year':li},index=df.index)
+    
+# Good to go
 # Male and female add to exactly the total population
 # Percents all add to 1
 def get_sex(df):
@@ -70,7 +75,10 @@ def get_age(df):
     return pd.DataFrame({'median-age':li},index=df.index)
 
 # Good to go
-# Collects median household and per capita income and median house/condo value
+# Median household Income, Per Capita Income, and Median House/Condo Value
+# Interestingly, all of the data in this column is from 2017
+# which does not match up with all the years of
+# the population counts
 def get_income(df):
     hh_income, per_capita_income, home_value = [],[],[]
     list_tuple = (hh_income, per_capita_income, home_value)
@@ -86,55 +94,37 @@ def get_income(df):
                 list_tuple[i].append(float(match_tuple[i].group('value').replace(',','')))        
     return pd.DataFrame({'median-household-income':hh_income,'per-capita-income':per_capita_income,'median-home-value':home_value},index=df.index)
 
-# Next on the list
-def avg_income(df):
-    l=[]
-    get_inc = re.compile('per capita.*?:\s\$(?P<inc>\d*(\,\d*)*)')
-    for i in range(len(df)):
-        try:
-            ans = get_inc.search(df.iloc[i]['median-income']).group('inc')
-            ans = float(ans.replace(',',''))
-        except:
-            ans = np.nan
-        finally:
-            l.append(ans)
-    return l
+# Really want this variable as well
+# Plus, I want a variable for number of universities in a city
+def get_rent(df):
+    pass
 
-df2017 = add_column(avg_income,df2017,'average-income')
-
-def rent(df):
-    l=[]
-    get_rent = re.compile('\$(?P<rent>\d*(,\d*)*)')
-    for cell in df['median-rent']:
-        if cell is np.nan:
-            ans = np.nan
-        else:
-            ans = get_rent.search(cell).group('rent')
-            ans = float(ans.replace(',',''))
-        l.append(ans)
-    return l
-
-df2017 = add_column(rent,df2017,'median-rent-float')
-
+# Good to go
+# Land Area and Population Density
+# Population density only goes out to one decimal place
+# so there are 71 cities whose population, as calculated using land area
+# and population density, varies by more than 5 percent from the true
+# population
 def density(df):
-    l=[]
-    get_dens = re.compile('density:\s(?P<dens>\d*(\,\d*)*)\s')
+    areas, dens = [], []
+    get_area = re.compile('area:\s(?P<area>\d*(\,\d*)*(\.\d+)?)\s')
+    get_dens = re.compile('density:\s(?P<dens>\d*(\,\d*)*(\.\d+)?)\s')
     for cell in df['population-density']:
-        if cell is np.nan:
-            ans = np.nan
-        else:
-            try:
-                ans = get_dens.search(cell).group('dens')
-                ans = float(ans.replace(',',''))
-            except:
-                ans = np.nan
-        l.append(ans)
-    return l
+        try:
+            a = get_area.search(cell).group('area')
+            a = float(a.replace(',',''))
+            d = get_dens.search(cell).group('dens')
+            d = float(d.replace(',',''))
+        except TypeError:
+            a = np.nan
+            d = np.nan
+        areas.append(a)
+        dens.append(d)
+    return pd.DataFrame({'land-area':areas,'pop-density':dens},df.index)
 
-df2017 = add_column(density,df2017,'pop-density')
-
+# Good to go
 def foreign(df):
-    l=[]
+    li=[]
     get_born = re.compile('\d*(\,\d*)*')
     for cell in df['foreign-born-population']:
         if cell is np.nan:
@@ -142,11 +132,10 @@ def foreign(df):
         else:
             ans = get_born.match(cell).group()
             ans = float(ans.replace(',',''))
-        l.append(ans)
-    return l
+        li.append(ans)
+    return pd.DataFrame({'foreign-born':li},index=df.index)
 
-df2017 = add_column(foreign,df2017,'foreign-born')
-
+# I will work on this later
 def add_race(df,race,name):
     l=[]
     get_nums = re.compile('(?P<nums>\d*(\,\d*)*\.\d*)\%'+race)
@@ -187,6 +176,7 @@ df2017 = add_race(df2017,'Black','black-population')
 df2017 = add_race(df2017,'Hispanic','hispanic-population')
 df2017 = add_race(df2017,'Asian','asian-population')
 
+# Gini Education inequality index
 def add_gini(df):
     l=[]
     get_gini = re.compile('Here:(?P<gini>\d*?\.\d)')
@@ -234,8 +224,12 @@ df_other = df_other.drop(df_july07.index)
 
 # Building the numerical dataset
 nums = pd.DataFrame(index=df.index)
+nums = pd.concat([nums,get_year(df)],axis=1)
 nums = pd.concat([nums,get_pop(df)],axis=1)
 nums = pd.concat([nums,get_sex(df)],axis=1)
 nums = pd.concat([nums,get_poverty(df)],axis=1)
 nums = pd.concat([nums,get_age(df)],axis=1)
 nums = pd.concat([nums,get_income(df)],axis=1)
+nums = pd.concat([nums,density(df)],axis=1)
+nums = pd.concat([nums,foreign(df)],axis=1)
+nums.to_csv('all-nums.csv')
