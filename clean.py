@@ -7,14 +7,13 @@ Created on Thu Aug 20 15:11:11 2020
 import numpy as np
 import pandas as pd
 import re
-from functools import reduce
 
 def count_na(df):
     for name in df.columns:
-        print(name +': '+str(df[name].isnull().sum()))
+        print(f"{name}: {df[name].isnull().sum()}")
 
 # Good to go
-# Total Population
+# Total Population (years vary and are include by get_year)
 def get_pop(df):
     peeps = re.compile('\d{4}:\s(?P<population>\d+(\,\d{3})*)')
     li = []
@@ -37,6 +36,7 @@ def get_year(df):
 # Male Population, Female Population
 # Male and female add to exactly Total Population
 # Percents all add to 1
+# Assumed same year as Total Population
 def get_sex(df):
     males = re.compile('Males:\s(?P<male>\d*(\,\d{3})*)\s*\((?P<perc_male>.+?)%\)')
     females = re.compile('Females:\s(?P<female>\d*(\,\d{3})*)\s*\((?P<perc_female>.+?)%\)')
@@ -60,6 +60,7 @@ def get_sex(df):
 # Poverty Level
 # I don't have the guts to try and grab all of the racial poverty levels right now. That's a lot.
 # All values between 0 and 1
+# All from 2017
 def get_poverty(df):
     li=[]
     get_pov = re.compile('in \d{4}:\s(?P<pov>.*?)\%')
@@ -73,6 +74,7 @@ def get_poverty(df):
 
 # Good to go
 # Median Age
+# Year is unknown
 def get_age(df):
     li=[]
     get_age = re.compile('resident age:(?P<age>\d*\.?\d?) years')
@@ -118,7 +120,8 @@ def get_rent(df):
 # Population density only goes out to one decimal place
 # so there are 71 cities whose population, as calculated using land area
 # and population density, varies by more than 5 percent from the true
-# population
+# population. They are all small and sparsely populated.
+# Year is unknown
 def density(df):
     areas, dens = [], []
     get_area = re.compile('area:\s(?P<area>\d*(\,\d*)*(\.\d+)?)\s')
@@ -138,6 +141,7 @@ def density(df):
 
 # Good to go
 # Foreign-Born Residents (Immigrants)
+# Year is unknown
 def foreign(df):
     li=[]
     get_born = re.compile('\d*(\,\d*)*')
@@ -152,6 +156,7 @@ def foreign(df):
 
 # Good to go
 # Gini Education Inequality Index
+# Year is unknown
 def get_gini(df):
     li=[]
     get_gini = re.compile('Here:(?P<gini>\d*?\.\d)')
@@ -169,6 +174,7 @@ def get_gini(df):
 # Full-time students from the 20 largest colleges/universities in the city
 # 0 for most cities
 # Some schools did not include enrollment, so it's not perfect
+# Year is unknown
 # I figure it can hugely affect income, age, housing prices, and education
 def get_students(df):
     li = []
@@ -189,21 +195,31 @@ def get_students(df):
         li.append(num)
     return pd.DataFrame({'student-population':li},index=df.index)
             
-
-
+# Good to go
 # Percent High School, Bachelor's, Doctorate
-def get_educ(df,level,or_hi=True):
-    hi = ' or higher:' if or_hi == True else ':'
-    get_educ = re.compile(level+hi+'\s(?P<educ>\d*?\.\d)%')
-    l = []
-    for cell in df['education-info']:
-        try:
-            ans = float(get_educ.search(cell).group('educ'))
-        except AttributeError:
-            ans = np.nan
-        l.append(ans)
-    name = level.lower().replace(' ','-').replace('\'','')
-    return pd.concat([df,pd.DataFrame(l,df.index,columns=[name])],axis=1)
+# Percent of population 25 or older with a certain level
+# of education or higher
+# Year is unknown
+def get_educ(df):
+    names = ['High school','Bachelor','Graduate']
+    extras = [' or higher',"\'s degree or higher",' or professional degree']
+    d = {}
+    zipped = zip(names,extras)
+    for name, extra in zipped:
+        get_educ = re.compile(name+extra+':\s(?P<educ>\d*?\.\d)%')
+        li = []
+        for i, cell in enumerate(df['education-info']):
+            if cell is np.nan:
+                ans = np.nan
+            else:
+                try:
+                    ans = float(get_educ.search(cell).group('educ'))/100
+                except AttributeError:                
+                    ans = np.nan
+            li.append(ans)
+        col = name.lower().replace(' ','-') + '-education'
+        d.update({col:li})
+    return pd.DataFrame(d,index=df.index)
 
 
 # I will work on this later. Lots of variation in which races are included.
@@ -245,14 +261,20 @@ def add_race(df,race,name):
 
     
 df = pd.read_excel('C:/Users/lando/Desktop/Python/City Data/all-cities.xlsx',sheet_name='Unabridged')
+
+# Set the index; this unfortunately must be done every time
+# the DataFrame is read from the file. However, it is not
+# entirely
 df = df.set_index(['state','city'])
+
 # Dropping rows that are completely empty or only have useless information
 df = df.dropna(thresh = 8) # thresh drops rows that have less than 8 non-n/a values
+
 # city-population has been a pretty good indicator of the
 # completeness of the data, so I'm going to sort by that
 df = df[df['city-population'].notna()]
-df_2017 = df[df['city-population'].str.contains('in 2017')]
-df_2010 = df[df['city-population'].str.contains('in 2010')]
+df_2017 = df[df['city-population'].str.contains('2017')]
+df_2010 = df[df['city-population'].str.contains('2010')]
 df_july07 = df[df['city-population'].str.contains('in July 2007')]
 # If I can make the cleaning functions work with any date, I think I can
 # scrub the data first and split them later
@@ -265,7 +287,7 @@ df_other = df_other.drop(df_july07.index)
 # Building the numerical dataset
 nums = pd.DataFrame(index=df.index)
 fns = [get_year, get_pop, get_sex, get_poverty, get_age, get_income,
-       get_rent, density, foreign, get_gini, get_students]
+       get_rent, density, foreign, get_gini, get_students, get_educ]
 for fn in fns:
     nums = pd.concat([nums,fn(df)],axis=1)
 nums.to_csv('all-nums.csv')
