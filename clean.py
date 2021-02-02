@@ -223,48 +223,37 @@ def get_educ(df):
 
 
 # I will work on this later. Lots of variation in which races are included.
-# Does that mean I can count na's as 0?
+# Does that mean I can count na's as 0? I have to decide what to do about that.
 def add_race(df,race,name):
-    l=[]
-    get_nums = re.compile('(?P<nums>\d*(\,\d*)*\.\d*)\%'+race)
-    for i in range(len(df)):
-        print(race,i)
-        cell = df.iloc[i]['races-graph']
-        if cell is np.nan:
-            l.append(np.nan)
-            continue
-        if cell.find(r'%'+race) == -1:
-            l.append(np.nan)
-            continue
-        nums = get_nums.search(cell).group('nums')
-        y = 0
-        while y != -1:
-            last_comma = y
-            y = nums.find(',',y+1)
-        if last_comma == 0:
-            x = nums.find('.')-1
-            pop = df.iloc[i]['population']
-            while x != 0:
-                num1 = int(nums[:x])
-                num2 = float(nums[x:])
-                diff = abs(num1 / pop * 100 - num2)
-                if diff < 20:
-                    break
-                else:
-                    x -= 1
-            ans = num1 if x != 0 else np.nan
-        else:
-            ans = int(nums[0:last_comma+4].replace(',',''))
-        l.append(ans)
-    print(race,'population added to the dataset')
-    return pd.concat([df,pd.DataFrame(l,index=df.index,columns = [name])],axis=1)
+   pass
 
-    
+# Before I get to that I think I will grab marital status, diabetes and 
+# obesity rates, healthy diet, teeth and gums, alcohol/tobacco consumption,
+# how people feel about themselves, etc. and maybe air quality
+
+# Good to go
+# Adult Diabetes Rate, Adult Obesity Rate, Preschool Obesity Rate
+def get_food(df):
+    dia = re.compile('Adult diabetes rate: ((\w+\.? )*?\w+):\s?(?P<perc>\d*\.\d)%')
+    obese = re.compile('Adult obesity rate: ((\w+.? )*?\w+):\s?(?P<perc>\d*\.\d)%')
+    pre_obese = re.compile('Low-income preschool obesity rate: ((\w+\.? )*?\w+):\s?(?P<perc>\d*\.\d)%')
+    names = ['diabetes-rate','obesity-rate','preschool-obesity']
+    patterns = [dia,obese,pre_obese]
+    lists = [[],[],[]]
+    for city in df['food-environment']:
+        for i in range(3):
+            m = patterns[i].search(city)
+            if bool(m):
+                lists[i].append(float(m.group('perc'))/100)
+            else:
+                lists[i].append(np.nan)
+    return pd.DataFrame({names[j]:lists[j] for j in range(3)},index=df.index)
+        
 df = pd.read_excel('C:/Users/lando/Desktop/Python/City Data/all-cities.xlsx',sheet_name='Unabridged')
 
 # Set the index; this unfortunately must be done every time
 # the DataFrame is read from the file. However, it is not
-# entirely
+# entirely necessary. It just simplifies looking for specific cities.
 df = df.set_index(['state','city'])
 
 # Dropping rows that are completely empty or only have useless information
@@ -287,7 +276,8 @@ df_other = df_other.drop(df_july07.index)
 # Building the numerical dataset
 nums = pd.DataFrame(index=df.index)
 fns = [get_year, get_pop, get_sex, get_poverty, get_age, get_income,
-       get_rent, density, foreign, get_gini, get_students, get_educ]
+       get_rent, density, foreign, get_gini, get_students, get_educ,
+       get_food]
 for fn in fns:
     nums = pd.concat([nums,fn(df)],axis=1)
 nums.to_csv('all-nums.csv')
