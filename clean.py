@@ -120,7 +120,7 @@ def get_rent(df):
 # Population density only goes out to one decimal place
 # so there are 71 cities whose population, as calculated using land area
 # and population density, varies by more than 5 percent from the true
-# population. They are all small and sparsely populated.
+# population. They are all large land-wise and sparsely populated.
 # Year is unknown
 def density(df):
     areas, dens = [], []
@@ -196,9 +196,8 @@ def get_students(df):
     return pd.DataFrame({'student-population':li},index=df.index)
             
 # Good to go
-# Percent High School, Bachelor's, Doctorate
-# Percent of population 25 or older with a certain level
-# of education or higher
+# Percent High School, Bachelor's, Graduate
+# Percent of population 25 or older with a certain level of education or higher
 # Year is unknown
 def get_educ(df):
     names = ['High school','Bachelor','Graduate']
@@ -234,9 +233,9 @@ def add_race(df,race,name):
 # Good to go
 # Adult Diabetes Rate, Adult Obesity Rate, Preschool Obesity Rate
 def get_food(df):
-    dia = re.compile('Adult diabetes rate: ((\w+\.? )*?\w+):\s?(?P<perc>\d*\.\d)%')
-    obese = re.compile('Adult obesity rate: ((\w+.? )*?\w+):\s?(?P<perc>\d*\.\d)%')
-    pre_obese = re.compile('Low-income preschool obesity rate: ((\w+\.? )*?\w+):\s?(?P<perc>\d*\.\d)%')
+    dia = re.compile('Adult diabetes rate:.*?:\s?(?P<perc>\d*\.\d)%')
+    obese = re.compile('Adult obesity rate:.*?:\s?(?P<perc>\d*\.\d)%')
+    pre_obese = re.compile('Low-income preschool obesity rate:.*?:\s?(?P<perc>\d*\.\d)%')
     names = ['diabetes-rate','obesity-rate','preschool-obesity']
     patterns = [dia,obese,pre_obese]
     lists = [[],[],[]]
@@ -280,4 +279,4 @@ fns = [get_year, get_pop, get_sex, get_poverty, get_age, get_income,
        get_food]
 for fn in fns:
     nums = pd.concat([nums,fn(df)],axis=1)
-nums.to_csv('all-nums.csv')
+nums.to_csv('C:/Users/lando/Desktop/Python/City Data/all-nums.csv')
