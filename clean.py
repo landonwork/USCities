@@ -232,6 +232,7 @@ def add_race(df,race,name):
 
 # Good to go
 # Adult Diabetes Rate, Adult Obesity Rate, Preschool Obesity Rate
+# Unknown year
 def get_food(df):
     dia = re.compile('Adult diabetes rate:.*?:\s?(?P<perc>\d*\.\d)%')
     obese = re.compile('Adult obesity rate:.*?:\s?(?P<perc>\d*\.\d)%')
@@ -240,13 +241,108 @@ def get_food(df):
     patterns = [dia,obese,pre_obese]
     lists = [[],[],[]]
     for city in df['food-environment']:
-        for i in range(3):
+        for i in range(len(names)):
             m = patterns[i].search(city)
             if bool(m):
                 lists[i].append(float(m.group('perc'))/100)
             else:
                 lists[i].append(np.nan)
     return pd.DataFrame({names[j]:lists[j] for j in range(3)},index=df.index)
+
+# Good to go
+# There are 7000 NA values in each column but in the 2017 data set, there
+# are fewer than 1000 in each
+# Unknown year
+def get_health(df):
+    
+    diet = re.compile('Healthy diet rate:.*?:\s?(?P<num>\d*\.\d)%')
+    teeth_n_gums = re.compile('teeth and gums:.*?:\s?(?P<num>\d*\.\d)%')
+    feel_bad = re.compile('feeling badly about themselves:.*?:\s?(?P<num>\d*\.\d)%')
+    health = re.compile('General health condition:.*?:\s?(?P<num>\d*\.\d)%')
+    hearing = re.compile('hearing:.*?:\s?(?P<num>\d*\.\d)%')
+    no_alcohol = re.compile('not drinking alcohol at all:.*?:\s?(?P<num>\d*\.\d)%')
+    
+    names = ['average-health','average-hearing','healthy-diet-rate','teeth-and-gums','feel-bad','no-alcohol']
+    patterns = [health,hearing,diet,teeth_n_gums,feel_bad,no_alcohol]
+    lists = [[],[],[],[],[],[]]
+    for city in df['health-nutrition']:
+        for i in range(len(names)):
+            if city is np.nan:
+                lists[i].append(np.nan)
+                continue
+            m = patterns[i].search(city)
+            if bool(m):
+                lists[i].append(float(m.group('num'))/100)
+            else:
+                lists[i].append(np.nan)
+    return pd.DataFrame({names[j]:lists[j] for j in range(len(names))},index=df.index)
+
+# Good to go
+# Again 7000 NA values but few for 2017
+# Unknown year
+def get_sleep(df):
+    li = []
+    for city in df['health-nutrition']:
+        if city is np.nan:
+           li.append(np.nan)
+           continue
+        m = re.search('sleeping at night:.*?:\s?(?P<num>\d{1,2}\.\d)',city)
+        if bool(m):
+            li.append(float(m.group('num')))
+        else:
+            li.append(np.nan)
+    return pd.DataFrame({'average-sleep':li},index=df.index)
+
+# Good to go
+# Elevation in feet
+# This would be an interesting variable to test with suicide rates
+# Someone mentioned to me suicide rates being higher in places with higher
+# elevations. We could also try northern states versus southern states
+# to see if latitude has something to do with it. Or maybe cities that are
+# right on the northern/southern border
+def get_elevation(df):
+    li = []
+    for city in df['elevation']:
+        if city is np.nan:
+            li.append(np.nan)
+            continue
+        m = re.search('Elevation: (?P<num>\d+) f',city)
+        if bool(m):
+            li.append(int(m.group('num')))
+        else:
+            li.append(np.nan)
+    return pd.DataFrame({'elevation':li},index=df.index)
+        
+
+# Good to go
+# I believe marital status could be another important factor in suicide rates
+def get_marriage(df):
+    
+    never = re.compile('Never married:\s*(?P<num>\d*\.\d)%')
+    married = re.compile('Now married:\s*(?P<num>\d*\.\d)%')
+    separated = re.compile('Separated:\s*(?P<num>\d*\.\d)%')
+    widowed = re.compile('Widowed:\s*(?P<num>\d*\.\d)%')
+    divorced = re.compile('Divorced:\s*(?P<num>\d*\.\d)%')
+    
+    names = ['never-married','married','separated','widowed','divorced']
+    patterns = [never,married,separated,widowed,divorced]
+    lists = [[],[],[],[],[]]
+    for city in df['marital-info']:
+        for i in range(len(names)):
+            if city is np.nan:
+                lists[i].append(np.nan)
+                continue
+            m = patterns[i].search(city)
+            if bool(m):
+                lists[i].append(float(m.group('num'))/100)
+            else:
+                lists[i].append(np.nan)
+    return pd.DataFrame({names[j]:lists[j] for j in range(len(names))},index=df.index)
+
+
+# I haven't been able to grab the racial demographics in a clean way and
+# I have wasted a lot of time trying, so it is not included.
+# For the same reason, I am not going to include religion in the data set.                
         
 df = pd.read_excel('C:/Users/lando/Desktop/Python/City Data/all-cities.xlsx',sheet_name='Unabridged')
 
@@ -265,18 +361,14 @@ df_2017 = df[df['city-population'].str.contains('2017')]
 df_2010 = df[df['city-population'].str.contains('2010')]
 df_july07 = df[df['city-population'].str.contains('in July 2007')]
 # If I can make the cleaning functions work with any date, I think I can
-# scrub the data first and split them later
-
+# scrub the data first and split them later.
 # This leaves 46 rows unaccounted for. They are from random years.
-df_other = df.drop(df_2017.index)
-df_other = df_other.drop(df_2010.index)
-df_other = df_other.drop(df_july07.index)
 
 # Building the numerical dataset
 nums = pd.DataFrame(index=df.index)
-fns = [get_year, get_pop, get_sex, get_poverty, get_age, get_income,
-       get_rent, density, foreign, get_gini, get_students, get_educ,
-       get_food]
+fns = [get_year, get_pop,    get_sex,       get_poverty, get_age,  get_income,
+       get_rent, density,    get_elevation, foreign,     get_gini, get_students,
+       get_educ, get_food,   get_health,    get_sleep,   get_marriage]
 for fn in fns:
     nums = pd.concat([nums,fn(df)],axis=1)
 nums.to_csv('C:/Users/lando/Desktop/Python/City Data/all-nums.csv')
