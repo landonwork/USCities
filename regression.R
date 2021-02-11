@@ -25,7 +25,7 @@ corrgram(df, upper.panel = panel.pie, lower.panel = panel.pts)
 #         include an accurate representation of this variable in
 #         the dataset, but I wish I could.
 
-model <- lm(suicide.rate ~ pop.density+elevation+high.school.education+percent.female+median.age+lat+married+feel.bad+obesity.rate,data=df)
+model <- lm(suicide.rate ~ pop.density+I(elevation/1000)+I(high.school.education*100)+I(percent.female*100)+median.age+lat+I(married*100)+I(feel.bad*100)+I(obesity.rate*100),data=df)
 stargazer(model,type='text')
 
 myH0 <- c('percent.female','lat','feel.bad')
@@ -34,7 +34,7 @@ linearHypothesis(model,myH0)
 # There is no reason to say that percent.female, lat, or feel.bad have
 # any impact on the suicide rate
 
-restricted_model = lm(suicide.rate ~ pop.density+elevation+high.school.education+median.age+married+obesity.rate,data=df)
+restricted_model = lm(suicide.rate ~ pop.density+I(elevation/1000)+I(high.school.education*100)+median.age+I(married*100)+I(obesity.rate*100),data=df)
 stargazer(restricted_model,type='text')
 
 # These results are crazy!
