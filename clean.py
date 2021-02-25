@@ -24,7 +24,7 @@ def get_pop(df):
             li.append(num)
         else:
             li.append(np.nan)
-    return pd.DataFrame({'total-population':li},index = df.index)
+    return pd.DataFrame({'total_population':li},index = df.index)
 
 # Good to go
 # Year (of population columns)
@@ -54,7 +54,7 @@ def get_sex(df):
         else:
             female_pop.append(np.nan)
             perc_female.append(np.nan)
-    return pd.DataFrame({'male-population':male_pop,'female-population':female_pop,'percent-male':perc_male,'percent-female':perc_female}, index = df.index)
+    return pd.DataFrame({'male_population':male_pop,'female_population':female_pop,'percent_male':perc_male,'percent_female':perc_female}, index = df.index)
 
 # Good to go
 # Poverty Level
@@ -70,7 +70,7 @@ def get_poverty(df):
             continue
         else:
             li.append(float(get_pov.search(text).group('pov'))/100)
-    return pd.DataFrame({'poverty-level':li},index=df.index)
+    return pd.DataFrame({'poverty_level':li},index=df.index)
 
 # Good to go
 # Median Age
@@ -81,7 +81,7 @@ def get_age(df):
     for text in df['median-age']:
         age = float(get_age.search(text).group('age'))
         li.append(age)
-    return pd.DataFrame({'median-age':li},index=df.index)
+    return pd.DataFrame({'median_age':li},index=df.index)
 
 # Good to go
 # Median household Income, Per Capita Income, Median Home Value
@@ -101,7 +101,7 @@ def get_income(df):
                 list_tuple[i].append(np.nan)
             else:
                 list_tuple[i].append(float(match_tuple[i].group('value').replace(',','')))        
-    return pd.DataFrame({'median-household-income':hh_income,'per-capita-income':per_capita_income,'median-home-value':home_value},index=df.index)
+    return pd.DataFrame({'household_income':hh_income,'per_capita_income':per_capita_income,'median_home_value':home_value},index=df.index)
 
 # Good to go
 # Median Rent
@@ -113,7 +113,7 @@ def get_rent(df):
             li.append(np.nan)
         else:
             li.append(float(re.search('\d{4}: \$(?P<rent>\d+(\,\d{3})*(\.d{2})?)',text).group('rent').replace(',','')))
-    return pd.DataFrame({'median-rent':li},index=df.index)
+    return pd.DataFrame({'median_rent':li},index=df.index)
 
 # Good to go
 # Land Area and Population Density
@@ -137,7 +137,7 @@ def density(df):
             d = np.nan
         areas.append(a)
         dens.append(d)
-    return pd.DataFrame({'land-area':areas,'pop-density':dens},df.index)
+    return pd.DataFrame({'land_area':areas,'pop_density':dens},df.index)
 
 # Good to go
 # Foreign-Born Residents (Immigrants)
@@ -152,7 +152,7 @@ def foreign(df):
             ans = get_born.match(cell).group()
             ans = float(ans.replace(',',''))
         li.append(ans)
-    return pd.DataFrame({'foreign-born':li},index=df.index)
+    return pd.DataFrame({'foreign_born':li},index=df.index)
 
 # Good to go
 # Gini Education Inequality Index
@@ -167,7 +167,7 @@ def get_gini(df):
         except (AttributeError, TypeError):
             ans = np.nan
         li.append(ans)
-    return pd.DataFrame({'gini-index':li}, index = df.index)
+    return pd.DataFrame({'gini_index':li}, index = df.index)
 
 # Good to go
 # Student Population
@@ -193,7 +193,7 @@ def get_students(df):
                 except AttributeError:
                     pass
         li.append(num)
-    return pd.DataFrame({'student-population':li},index=df.index)
+    return pd.DataFrame({'student_population':li},index=df.index)
             
 # Good to go
 # Percent High School, Bachelor's, Graduate
@@ -216,7 +216,7 @@ def get_educ(df):
                 except AttributeError:                
                     ans = np.nan
             li.append(ans)
-        col = name.lower().replace(' ','-') + '-education'
+        col = name.lower().replace(' ','_') + '_education'
         d.update({col:li})
     return pd.DataFrame(d,index=df.index)
 
@@ -237,7 +237,7 @@ def get_food(df):
     dia = re.compile('Adult diabetes rate:.*?:\s?(?P<perc>\d*\.\d)%')
     obese = re.compile('Adult obesity rate:.*?:\s?(?P<perc>\d*\.\d)%')
     pre_obese = re.compile('Low-income preschool obesity rate:.*?:\s?(?P<perc>\d*\.\d)%')
-    names = ['diabetes-rate','obesity-rate','preschool-obesity']
+    names = ['diabetes_rate','obesity_rate','preschool_obesity']
     patterns = [dia,obese,pre_obese]
     lists = [[],[],[]]
     for city in df['food-environment']:
@@ -262,7 +262,7 @@ def get_health(df):
     hearing = re.compile('hearing:.*?:\s?(?P<num>\d*\.\d)%')
     no_alcohol = re.compile('not drinking alcohol at all:.*?:\s?(?P<num>\d*\.\d)%')
     
-    names = ['average-health','average-hearing','healthy-diet-rate','teeth-and-gums','feel-bad','no-alcohol']
+    names = ['average_health','average_hearing','healthy_diet_rate','teeth_and_gums','feel_bad','no_alcohol']
     patterns = [health,hearing,diet,teeth_n_gums,feel_bad,no_alcohol]
     lists = [[],[],[],[],[],[]]
     for city in df['health-nutrition']:
@@ -291,7 +291,7 @@ def get_sleep(df):
             li.append(float(m.group('num')))
         else:
             li.append(np.nan)
-    return pd.DataFrame({'average-sleep':li},index=df.index)
+    return pd.DataFrame({'average_sleep':li},index=df.index)
 
 # Good to go
 # Elevation in feet
@@ -324,7 +324,7 @@ def get_marriage(df):
     widowed = re.compile('Widowed:\s*(?P<num>\d*\.\d)%')
     divorced = re.compile('Divorced:\s*(?P<num>\d*\.\d)%')
     
-    names = ['never-married','married','separated','widowed','divorced']
+    names = ['never_married','married','separated','widowed','divorced']
     patterns = [never,married,separated,widowed,divorced]
     lists = [[],[],[],[],[]]
     for city in df['marital-info']:
@@ -371,4 +371,4 @@ fns = [get_year, get_pop,    get_sex,       get_poverty, get_age,  get_income,
        get_educ, get_food,   get_health,    get_sleep,   get_marriage]
 for fn in fns:
     nums = pd.concat([nums,fn(df)],axis=1)
-nums.to_csv('C:/Users/lando/Desktop/Python/City Data/all-nums.csv')
+nums.to_csv('C:/Users/lando/Desktop/Python/City Data/all_nums.csv')
