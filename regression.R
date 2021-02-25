@@ -25,7 +25,7 @@ corrgram(df1, upper.panel = panel.pie, lower.panel = panel.pts)
 #     12. married
 #     13. high_school_education
 
-model <- lm(suicide_rate ~ pop_density + 
+model <- lm(suicide_rate ~ I(pop_density/100) + 
               I(elevation/1000) + 
               I(high_school_education*100) + 
               I(bachelor_education*100) +
@@ -79,7 +79,7 @@ myH0 <- c('I(married * 100)','I(percent_students * 100)')
 linearHypothesis(model,myH0)
 # p-value: .03236
 
-restricted_model1 = lm(suicide_rate ~ pop_density + 
+restricted_model1 = lm(suicide_rate ~ I(pop_density/100) + 
                         I(elevation/1000) + 
                         I(high_school_education*100) + 
                         I(bachelor_education*100) + 
@@ -89,7 +89,7 @@ restricted_model1 = lm(suicide_rate ~ pop_density +
                         I(percent_students*100),
                       data=df1)
 
-restricted_model2 = lm(suicide_rate ~ pop_density + 
+restricted_model2 = lm(suicide_rate ~ I(pop_density/100) + 
                          I(elevation/1000) + 
                          I(high_school_education*100) + 
                          I(bachelor_education*100) + 
@@ -107,7 +107,7 @@ summary2 <- stargazer(model,restricted_model1,restricted_model2,type='text')
 # by the CDC
 df2 = df1[subset(df1, select=c("deaths")) >= 20, ]
 
-model <- lm(suicide_rate ~ pop_density + 
+model <- lm(suicide_rate ~ I(pop_density/100) + 
               I(elevation/1000) + 
               I(high_school_education*100) + 
               I(bachelor_education*100) +
@@ -125,7 +125,7 @@ myH0 = c("I(percent_female * 100)","lat","I(married * 100)","I(obesity_rate * 10
 linearHypothesis(model,myH0)
 # P-value: .6832
 
-restricted_model = lm(suicide_rate ~ pop_density + 
+restricted_model = lm(suicide_rate ~ I(pop_density/100) + 
                          I(elevation/1000) + 
                          I(high_school_education*100) + 
                          I(bachelor_education*100) + 
@@ -143,7 +143,7 @@ summary3 <- stargazer(model,restricted_model,type='text')
 df3 = read.csv('C:/Users/lando/Desktop/Python/City Data/suicide_no_dups.csv')
 df3 = df3[is.finite(rowSums(df3[,-c(1:3)])), -c(1:3)]
 
-model1 <- lm(suicide_rate ~ pop_density + 
+model1 <- lm(suicide_rate ~ I(pop_density/100) + 
               I(elevation/1000) + 
               I(high_school_education*100) + 
               I(bachelor_education*100) +
@@ -157,7 +157,7 @@ model1 <- lm(suicide_rate ~ pop_density +
               I(percent_students*100),
             data=df1)
 
-model2 <- lm(suicide_rate ~ pop_density + 
+model2 <- lm(suicide_rate ~ I(pop_density/100) + 
                I(elevation/1000) + 
                I(high_school_education*100) + 
                I(bachelor_education*100) +
@@ -175,7 +175,7 @@ model2 <- lm(suicide_rate ~ pop_density +
 summary_dups_vs_no_dups <- stargazer(model1,model2,type='text')
 # No shocking or surprising changes
 
-restricted_model1 = lm(suicide_rate ~ pop_density + 
+restricted_model1 = lm(suicide_rate ~ I(pop_density/100) + 
                          I(elevation/1000) + 
                          I(high_school_education*100) + 
                          I(bachelor_education*100) + 
@@ -185,7 +185,7 @@ restricted_model1 = lm(suicide_rate ~ pop_density +
                          I(percent_students*100),
                        data=df3)
 
-restricted_model2 = lm(suicide_rate ~ pop_density + 
+restricted_model2 = lm(suicide_rate ~ I(pop_density/100) + 
                          I(elevation/1000) + 
                          I(high_school_education*100) + 
                          I(bachelor_education*100) + 
@@ -198,7 +198,7 @@ summary1_no_dups <- stargazer(model2,restricted_model1,restricted_model2,type='t
 
 df4 = df3[df3$deaths >= 20, ]
 
-model <- lm(suicide_rate ~ pop_density + 
+model <- lm(suicide_rate ~ I(pop_density/100) + 
               I(elevation/1000) + 
               I(high_school_education*100) + 
               I(bachelor_education*100) +
@@ -215,7 +215,7 @@ model <- lm(suicide_rate ~ pop_density +
 myH0 = c("I(percent_female * 100)","lat","I(married * 100)","I(obesity_rate * 100)")
 linearHypothesis(model,myH0)
 
-restricted_model = lm(suicide_rate ~ pop_density + 
+restricted_model = lm(suicide_rate ~ I(pop_density/100) + 
                         I(elevation/1000) + 
                         I(high_school_education*100) + 
                         I(bachelor_education*100) + 
@@ -227,6 +227,14 @@ restricted_model = lm(suicide_rate ~ pop_density +
 
 summary2_no_dups <- stargazer(model,restricted_model,type='text')
 # Same performance as the df2 model
+
+fileConn = file('C:/Users/lando/Desktop/Python/City Data/summary.txt')
+writeLines(c(summary1,summary2,summary3),fileConn)
+close(fileConn)
+
+fileConn = file('C:/Users/lando/Desktop/Python/City Data/summary_no_dups.txt')
+writeLines(c(summary_dups_vs_no_dups,summary1_no_dups,summary2_no_dups),fileConn)
+close(fileConn)
 
 # There are some other things that I would like to do now:
 #       1. I need to add in the other measures of education because those
